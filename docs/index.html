@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="description" content="ベイブレードXの対戦記録・勝敗分析アプリ">
+  <title>ベイログX Web</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">X</div>
+      <div>
+        <p class="eyebrow">BEYBLADE X BATTLE LOG</p>
+        <h1>ベイログX</h1>
+      </div>
+    </div>
+    <button id="data-menu-button" class="icon-button" type="button" aria-expanded="false" aria-controls="data-menu">
+      <span aria-hidden="true">•••</span><span class="sr-only">データメニュー</span>
+    </button>
+    <div id="data-menu" class="data-menu" hidden>
+      <button type="button" data-action="export-json">JSONバックアップを書き出す</button>
+      <button type="button" data-action="import-json">JSONバックアップを読み込む</button>
+      <button type="button" data-action="export-csv">CSVを書き出す</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="record-view" class="view is-active" aria-labelledby="record-title">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">RECORD</p>
+          <h2 id="record-title">対戦を記録</h2>
+        </div>
+        <span id="storage-status" class="status-pill">保存領域を確認中</span>
+      </div>
+
+      <form id="battle-form">
+        <div class="versus-grid">
+          <section class="card config-card">
+            <div class="card-title">
+              <span class="side-badge mine">自分</span>
+              <h3>自分のベイ</h3>
+            </div>
+            <div id="my-config" class="config-fields"></div>
+          </section>
+
+          <div class="versus-mark" aria-hidden="true"><span>VS</span></div>
+
+          <section class="card config-card">
+            <div class="card-title">
+              <span class="side-badge opponent">相手</span>
+              <h3>相手のベイ</h3>
+            </div>
+            <div id="opponent-config" class="config-fields"></div>
+          </section>
+        </div>
+
+        <section class="card result-card">
+          <div class="card-title">
+            <span class="title-icon" aria-hidden="true">⚑</span>
+            <h3>対戦結果</h3>
+          </div>
+          <div class="form-grid result-grid">
+            <label class="field">
+              <span>対戦日時</span>
+              <input id="played-at" type="datetime-local" required>
+            </label>
+            <label class="field">
+              <span>スタジアム</span>
+              <select id="stadium">
+                <option>エクストリームスタジアム</option>
+                <option>インフィニティスタジアム</option>
+              </select>
+            </label>
+            <fieldset class="field fieldset-wide">
+              <legend>勝敗</legend>
+              <div class="segmented three">
+                <label><input type="radio" name="winner" value="自分の勝ち" checked><span>自分の勝ち</span></label>
+                <label><input type="radio" name="winner" value="相手の勝ち"><span>相手の勝ち</span></label>
+                <label><input type="radio" name="winner" value="引き分け"><span>引き分け</span></label>
+              </div>
+            </fieldset>
+            <label class="field">
+              <span>決まり手</span>
+              <select id="finish">
+                <option>スピンフィニッシュ</option>
+                <option>オーバーフィニッシュ</option>
+                <option>バーストフィニッシュ</option>
+                <option>エクストリームフィニッシュ</option>
+                <option>その他</option>
+              </select>
+            </label>
+            <fieldset class="field">
+              <legend>リバース発生</legend>
+              <div class="reverse-grid">
+                <label>自分 <select id="my-reverse"><option value="false">無</option><option value="true">有</option></select></label>
+                <label>相手 <select id="opponent-reverse"><option value="false">無</option><option value="true">有</option></select></label>
+              </div>
+              <small>ゾーンへ入ったあと、スタジアムへ戻った場合に「有」</small>
+            </fieldset>
+            <label class="field fieldset-wide">
+              <span>メモ（任意）</span>
+              <textarea id="note" rows="3" placeholder="シュート位置や気づいたこと"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <button class="primary-button save-button" type="submit">この対戦を保存</button>
+      </form>
+    </section>
+
+    <section id="history-view" class="view" aria-labelledby="history-title">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">HISTORY</p>
+          <h2 id="history-title">対戦履歴</h2>
+        </div>
+        <button class="secondary-button" type="button" data-action="export-json">バックアップ</button>
+      </div>
+      <div id="history-summary" class="summary-grid"></div>
+      <div id="history-list" class="history-list"></div>
+    </section>
+
+    <section id="analysis-view" class="view" aria-labelledby="analysis-title">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">ANALYSIS</p>
+          <h2 id="analysis-title">結果検索</h2>
+        </div>
+      </div>
+      <section class="card analysis-search">
+        <div class="card-title">
+          <span class="title-icon" aria-hidden="true">⌕</span>
+          <div>
+            <h3>ベイの対戦成績を検索</h3>
+            <p>自分・相手を区別せず集計。ブレード必須、ビット任意。</p>
+          </div>
+        </div>
+        <div id="analysis-config" class="config-fields analysis-fields"></div>
+        <p class="hint">ラチェットは検索条件・対戦相手の集計キーに含めません。</p>
+      </section>
+      <div id="analysis-heading"></div>
+      <div id="analysis-results" class="analysis-results"></div>
+    </section>
+
+    <section id="data-view" class="view" aria-labelledby="data-title">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">DATA</p>
+          <h2 id="data-title">データ管理</h2>
+        </div>
+      </div>
+      <section class="card data-card">
+        <h3>iPhone版とデータを引き継ぐ</h3>
+        <p>JSONバックアップはWeb版とiPhone版の両方で読み込めます。読み込みは既存データを残し、新しい記録だけを追加します。</p>
+        <div class="data-actions">
+          <button class="primary-button" type="button" data-action="export-json">JSONを書き出す</button>
+          <button class="secondary-button" type="button" data-action="import-json">JSONを読み込む</button>
+          <button class="secondary-button" type="button" data-action="export-csv">CSVを書き出す</button>
+        </div>
+      </section>
+      <section class="card data-card">
+        <h3>Web版の保存について</h3>
+        <p>対戦記録はこのブラウザのIndexedDBに自動保存されます。ブラウザの履歴やサイトデータを削除した場合に備え、定期的にJSONバックアップを保存してください。</p>
+        <dl class="storage-details">
+          <div><dt>保存済み</dt><dd id="data-record-count">0件</dd></div>
+          <div><dt>永続ストレージ</dt><dd id="persistence-detail">確認中</dd></div>
+        </dl>
+      </section>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="メインメニュー">
+    <button class="is-active" type="button" data-view="record"><span aria-hidden="true">＋</span><span>記録する</span></button>
+    <button type="button" data-view="history"><span aria-hidden="true">▤</span><span>対戦履歴</span></button>
+    <button type="button" data-view="analysis"><span aria-hidden="true">▥</span><span>結果検索</span></button>
+    <button type="button" data-view="data"><span aria-hidden="true">⇄</span><span>データ</span></button>
+  </nav>
+
+  <input id="json-file-input" type="file" accept="application/json,.json" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="confirm-dialog">
+    <form method="dialog">
+      <h3>この記録を削除しますか？</h3>
+      <p>削除後はJSONバックアップがない限り元に戻せません。</p>
+      <div class="dialog-actions">
+        <button value="cancel" class="secondary-button">キャンセル</button>
+        <button value="confirm" class="danger-button">削除</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
