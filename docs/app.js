@@ -284,6 +284,8 @@ async function saveBattle(event) {
     stadium: $("#stadium").value,
     myReverseOccurred: $("#my-reverse").value === "true",
     opponentReverseOccurred: $("#opponent-reverse").value === "true",
+    mySelfDestructOccurred: $("#my-self-destruct").value === "true",
+    opponentSelfDestructOccurred: $("#opponent-self-destruct").value === "true",
     note: $("#note").value.trim()
   };
 
@@ -293,6 +295,8 @@ async function saveBattle(event) {
     $("#note").value = "";
     $("#my-reverse").value = "false";
     $("#opponent-reverse").value = "false";
+    $("#my-self-destruct").value = "false";
+    $("#opponent-self-destruct").value = "false";
     setInitialDate();
     renderAllDataViews();
     showToast("対戦結果を保存しました");
@@ -363,13 +367,20 @@ function renderHistory() {
   list.innerHTML = records.map(record => {
     const type = record.winner === "自分の勝ち" ? "win" : record.winner === "相手の勝ち" ? "loss" : "draw";
     const label = type === "win" ? "勝" : type === "loss" ? "負" : "分";
+    const events = [
+      record.myReverseOccurred ? "自分リバース" : "",
+      record.opponentReverseOccurred ? "相手リバース" : "",
+      record.mySelfDestructOccurred ? "自分自滅" : "",
+      record.opponentSelfDestructOccurred ? "相手自滅" : ""
+    ].filter(Boolean);
+    const eventText = events.length ? `・${events.join("・")}` : "";
     return `
       <article class="history-item ${type}">
         <div class="result-orb">${label}</div>
         <div class="history-main">
           <strong>${escapeHTML(displayName(record.myBey))}</strong>
           <span>vs ${escapeHTML(displayName(record.opponentBey))}</span>
-          <span class="history-meta">${escapeHTML(record.finish)}・${escapeHTML(record.stadium)}・${escapeHTML(formatDate(record.playedAt))}</span>
+          <span class="history-meta">${escapeHTML(record.finish)}・${escapeHTML(record.stadium)}${escapeHTML(eventText)}・${escapeHTML(formatDate(record.playedAt))}</span>
         </div>
         <button class="delete-button" type="button" data-delete-id="${escapeHTML(record.id)}" aria-label="この対戦を削除">削除</button>
       </article>
@@ -435,15 +446,28 @@ function emptyAggregate(opposingBey) {
     winFinishes: {},
     lossFinishes: {},
     reverseOccurrences: 0,
-    opponentReverseOccurrences: 0
+    opponentReverseOccurrences: 0,
+    selfDestructOccurrences: 0,
+    opponentSelfDestructOccurrences: 0
   };
 }
 
-function addAnalysisEntry(map, opposingBey, result, record, reverseOccurred, opposingReverseOccurred) {
+function addAnalysisEntry(
+  map,
+  opposingBey,
+  result,
+  record,
+  reverseOccurred,
+  opposingReverseOccurred,
+  selfDestructOccurred,
+  opposingSelfDestructOccurred
+) {
   const key = opponentKey(opposingBey);
   const aggregate = map.get(key) ?? emptyAggregate(opposingBey);
   if (reverseOccurred) aggregate.reverseOccurrences += 1;
   if (opposingReverseOccurred) aggregate.opponentReverseOccurrences += 1;
+  if (selfDestructOccurred) aggregate.selfDestructOccurrences += 1;
+  if (opposingSelfDestructOccurred) aggregate.opponentSelfDestructOccurrences += 1;
 
   if (result === "win") {
     aggregate.wins += 1;
@@ -468,14 +492,16 @@ function analyze(selected) {
       const result = record.winner === "引き分け" ? "draw" : record.winner === "自分の勝ち" ? "win" : "loss";
       addAnalysisEntry(
         map, record.opponentBey, result, record,
-        record.myReverseOccurred, record.opponentReverseOccurred
+        record.myReverseOccurred, record.opponentReverseOccurred,
+        record.mySelfDestructOccurred, record.opponentSelfDestructOccurred
       );
     }
     if (matchesSelected(record.opponentBey, selected)) {
       const result = record.winner === "引き分け" ? "draw" : record.winner === "相手の勝ち" ? "win" : "loss";
       addAnalysisEntry(
         map, record.myBey, result, record,
-        record.opponentReverseOccurred, record.myReverseOccurred
+        record.opponentReverseOccurred, record.myReverseOccurred,
+        record.opponentSelfDestructOccurred, record.mySelfDestructOccurred
       );
     }
   }
@@ -518,13 +544,20 @@ function renderAnalysis() {
   }
 
   const total = summaries.reduce((sum, item) => sum + battleCount(item), 0);
-  heading.innerHTML = `<h3>選択したベイの対戦成績</h3><p>${total}件の対戦・${summaries.length}種類の相手構成</p>`;
+  const selfDestructTotal = summaries.reduce((sum, item) => sum + item.selfDestructOccurrences, 0);
+  const selfDestructRate = total ? selfDestructTotal / total : 0;
+  heading.innerHTML = `
+    <h3>選択したベイの対戦成績</h3>
+    <p>${total}件の対戦・${summaries.length}種類の相手構成・自滅 ${selfDestructTotal}回（${percentage(selfDestructRate)}）</p>
+  `;
   container.innerHTML = summaries.map(summary => {
     const count = battleCount(summary);
     const decided = summary.wins + summary.losses;
     const winRate = decided ? summary.wins / decided : 0;
     const reverseRate = count ? summary.reverseOccurrences / count : 0;
     const opponentReverseRate = count ? summary.opponentReverseOccurrences / count : 0;
+    const selfDestructRate = count ? summary.selfDestructOccurrences / count : 0;
+    const opponentSelfDestructRate = count ? summary.opponentSelfDestructOccurrences / count : 0;
     return `
       <article class="card matchup-card">
         <div class="matchup-opponent">
@@ -544,6 +577,8 @@ function renderAnalysis() {
         <div class="reverse-stats">
           <span>検索したベイのリバース <strong>${summary.reverseOccurrences}回 / ${count}戦（${percentage(reverseRate)}）</strong></span>
           <span>対戦したベイのリバース <strong>${summary.opponentReverseOccurrences}回 / ${count}戦（${percentage(opponentReverseRate)}）</strong></span>
+          <span>検索したベイの自滅 <strong class="self-destruct-value">${summary.selfDestructOccurrences}回 / ${count}戦（${percentage(selfDestructRate)}）</strong></span>
+          <span>対戦したベイの自滅 <strong class="self-destruct-value">${summary.opponentSelfDestructOccurrences}回 / ${count}戦（${percentage(opponentSelfDestructRate)}）</strong></span>
         </div>
       </article>
     `;
@@ -589,6 +624,8 @@ function normalizedRecord(value) {
     stadium: value.stadium || "エクストリームスタジアム",
     myReverseOccurred: Boolean(value.myReverseOccurred ?? value.myBey?.isReversed ?? false),
     opponentReverseOccurred: Boolean(value.opponentReverseOccurred ?? value.opponentBey?.isReversed ?? false),
+    mySelfDestructOccurred: Boolean(value.mySelfDestructOccurred ?? false),
+    opponentSelfDestructOccurred: Boolean(value.opponentSelfDestructOccurred ?? false),
     note: String(value.note ?? "")
   };
 }
@@ -657,6 +694,7 @@ function exportCSV() {
   const header = [
     "日時", "スタジアム", "勝敗", "決まり手",
     "自分_リバース発生", "相手_リバース発生",
+    "自分_自滅発生", "相手_自滅発生",
     "自分_システム", "自分_ブレード", "自分_ロックチップ", "自分_メインブレード",
     "自分_オーバーブレード", "自分_メタルブレード", "自分_アシストブレード",
     "自分_ラチェット", "自分_ビット",
@@ -672,6 +710,8 @@ function exportCSV() {
     record.playedAt, record.stadium, record.winner, record.finish,
     record.myReverseOccurred ? "有" : "無",
     record.opponentReverseOccurred ? "有" : "無",
+    record.mySelfDestructOccurred ? "有" : "無",
+    record.opponentSelfDestructOccurred ? "有" : "無",
     ...beyValues(record.myBey),
     ...beyValues(record.opponentBey),
     record.note

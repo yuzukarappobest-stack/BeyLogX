@@ -376,6 +376,7 @@ fieldset.field small { color: var(--muted); font-size: .66rem; }
 .breakdown span { display: block; margin-bottom: 3px; color: var(--muted); font-size: .64rem; font-weight: 750; }
 .reverse-stats { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: .7rem; }
 .reverse-stats strong { color: var(--orange); }
+.reverse-stats strong.self-destruct-value { color: var(--red); }
 
 .data-card { margin-bottom: 14px; }
 .data-card h3 { margin: 0 0 8px; }
