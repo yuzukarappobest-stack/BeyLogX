@@ -256,6 +256,33 @@ function clearHiddenComponents(state) {
   }
 }
 
+function swapBattleSides() {
+  const previousMyBey = { ...states.my };
+  Object.assign(states.my, states.opponent);
+  Object.assign(states.opponent, previousMyBey);
+
+  renderConfiguration("my-config", states.my);
+  renderConfiguration("opponent-config", states.opponent);
+
+  const winner = $('input[name="winner"]:checked').value;
+  const swappedWinner = winner === "自分の勝ち"
+    ? "相手の勝ち"
+    : winner === "相手の勝ち"
+      ? "自分の勝ち"
+      : winner;
+  $(`input[name="winner"][value="${swappedWinner}"]`).checked = true;
+
+  const myReverse = $("#my-reverse").value;
+  $("#my-reverse").value = $("#opponent-reverse").value;
+  $("#opponent-reverse").value = myReverse;
+
+  const mySelfDestruct = $("#my-self-destruct").value;
+  $("#my-self-destruct").value = $("#opponent-self-destruct").value;
+  $("#opponent-self-destruct").value = mySelfDestruct;
+
+  showToast("自分と相手を入れ替えました");
+}
+
 function setInitialDate() {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
@@ -754,6 +781,7 @@ async function configurePersistentStorage() {
 
 function bindEvents() {
   $("#battle-form").addEventListener("submit", saveBattle);
+  $("#swap-sides").addEventListener("click", swapBattleSides);
   $$(".bottom-nav button").forEach(button => button.addEventListener("click", () => showView(button.dataset.view)));
 
   $("#data-menu-button").addEventListener("click", event => {
