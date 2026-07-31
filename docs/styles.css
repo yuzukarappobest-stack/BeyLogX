@@ -375,6 +375,26 @@ fieldset.field small { color: var(--muted); font-size: .66rem; }
 .analysis-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .analysis-fields .field:first-child { grid-column: 1 / -1; }
 .hint { margin: 14px 0 0; color: var(--muted); font-size: .7rem; }
+.self-destruct-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 17px 18px;
+  color: white;
+  background: linear-gradient(135deg, #9f2530, var(--red));
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(190,44,58,.2);
+}
+.self-destruct-summary[hidden] { display: none; }
+.self-destruct-summary > div:first-child { display: grid; gap: 3px; min-width: 0; }
+.self-destruct-summary > div:first-child strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
+.self-destruct-summary small { color: rgba(255,255,255,.76); font-size: .65rem; }
+.self-destruct-label { color: rgba(255,255,255,.85); font-size: .68rem; font-weight: 800; }
+.self-destruct-metric { min-width: 92px; text-align: center; }
+.self-destruct-metric strong, .self-destruct-metric span, .self-destruct-metric small { display: block; }
+.self-destruct-metric strong { font-size: 1.55rem; line-height: 1; }
+.self-destruct-metric span { margin: 4px 0 2px; font-size: .68rem; font-weight: 800; }
 #analysis-heading { margin: 24px 2px 10px; }
 #analysis-heading h3 { margin: 0; font-size: 1rem; }
 #analysis-heading p { margin: 3px 0 0; color: var(--muted); font-size: .72rem; }
@@ -395,7 +415,6 @@ fieldset.field small { color: var(--muted); font-size: .66rem; }
 .breakdown span { display: block; margin-bottom: 3px; color: var(--muted); font-size: .64rem; font-weight: 750; }
 .reverse-stats { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: .7rem; }
 .reverse-stats strong { color: var(--orange); }
-.reverse-stats strong.self-destruct-value { color: var(--red); }
 
 .data-card { margin-bottom: 14px; }
 .data-card h3 { margin: 0 0 8px; }
@@ -492,4 +511,6 @@ dialog p { color: var(--muted); font-size: .82rem; }
   .segmented span { font-size: .7rem; }
   .breakdowns { grid-template-columns: 1fr; }
   .page-heading .secondary-button { padding: 8px 10px; font-size: .72rem; }
+  .self-destruct-summary { grid-template-columns: 1fr; }
+  .self-destruct-metric { display: grid; grid-template-columns: auto auto 1fr; align-items: baseline; gap: 6px; text-align: left; }
 }

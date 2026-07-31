@@ -473,9 +473,7 @@ function emptyAggregate(opposingBey) {
     winFinishes: {},
     lossFinishes: {},
     reverseOccurrences: 0,
-    opponentReverseOccurrences: 0,
-    selfDestructOccurrences: 0,
-    opponentSelfDestructOccurrences: 0
+    opponentReverseOccurrences: 0
   };
 }
 
@@ -485,16 +483,12 @@ function addAnalysisEntry(
   result,
   record,
   reverseOccurred,
-  opposingReverseOccurred,
-  selfDestructOccurred,
-  opposingSelfDestructOccurred
+  opposingReverseOccurred
 ) {
   const key = opponentKey(opposingBey);
   const aggregate = map.get(key) ?? emptyAggregate(opposingBey);
   if (reverseOccurred) aggregate.reverseOccurrences += 1;
   if (opposingReverseOccurred) aggregate.opponentReverseOccurrences += 1;
-  if (selfDestructOccurred) aggregate.selfDestructOccurrences += 1;
-  if (opposingSelfDestructOccurred) aggregate.opponentSelfDestructOccurrences += 1;
 
   if (result === "win") {
     aggregate.wins += 1;
@@ -519,16 +513,14 @@ function analyze(selected) {
       const result = record.winner === "引き分け" ? "draw" : record.winner === "自分の勝ち" ? "win" : "loss";
       addAnalysisEntry(
         map, record.opponentBey, result, record,
-        record.myReverseOccurred, record.opponentReverseOccurred,
-        record.mySelfDestructOccurred, record.opponentSelfDestructOccurred
+        record.myReverseOccurred, record.opponentReverseOccurred
       );
     }
     if (matchesSelected(record.opponentBey, selected)) {
       const result = record.winner === "引き分け" ? "draw" : record.winner === "相手の勝ち" ? "win" : "loss";
       addAnalysisEntry(
         map, record.myBey, result, record,
-        record.opponentReverseOccurred, record.myReverseOccurred,
-        record.opponentSelfDestructOccurred, record.mySelfDestructOccurred
+        record.opponentReverseOccurred, record.myReverseOccurred
       );
     }
   }
@@ -554,9 +546,54 @@ function finishDescription(finishes) {
   return parts.length ? parts.join("・") : "なし";
 }
 
+function selfDestructSummary(selected) {
+  let appearanceCount = 0;
+  let occurrenceCount = 0;
+
+  for (const record of records) {
+    if (matchesSelected(record.myBey, selected)) {
+      appearanceCount += 1;
+      if (record.mySelfDestructOccurred) occurrenceCount += 1;
+    }
+    if (matchesSelected(record.opponentBey, selected)) {
+      appearanceCount += 1;
+      if (record.opponentSelfDestructOccurred) occurrenceCount += 1;
+    }
+  }
+
+  return { appearanceCount, occurrenceCount };
+}
+
+function renderSelfDestructSummary() {
+  const container = $("#analysis-self-destruct");
+  if (!hasBladeSelection(states.analysis) || !states.analysis.bit) {
+    container.hidden = true;
+    container.replaceChildren();
+    return;
+  }
+
+  const summary = selfDestructSummary(states.analysis);
+  const rate = summary.appearanceCount ? percentage(summary.occurrenceCount / summary.appearanceCount) : "—";
+  const selectedName = `${bladeDescription(states.analysis, true)}・${states.analysis.bit}`;
+  container.hidden = false;
+  container.innerHTML = `
+    <div>
+      <span class="self-destruct-label">ブレード＋ビットの自滅傾向</span>
+      <strong>${escapeHTML(selectedName)}</strong>
+      <small>対戦相手・ラチェットを問わず集計</small>
+    </div>
+    <div class="self-destruct-metric">
+      <strong>${rate}</strong>
+      <span>自滅率</span>
+      <small>${summary.occurrenceCount}回 / ${summary.appearanceCount}戦</small>
+    </div>
+  `;
+}
+
 function renderAnalysis() {
   const heading = $("#analysis-heading");
   const container = $("#analysis-results");
+  renderSelfDestructSummary();
   if (!hasBladeSelection(states.analysis)) {
     heading.innerHTML = "";
     container.innerHTML = `<div class="empty-state"><strong>ブレードを選択</strong>そのベイがどのベイに勝ったか・負けたかを表示します。</div>`;
@@ -571,11 +608,9 @@ function renderAnalysis() {
   }
 
   const total = summaries.reduce((sum, item) => sum + battleCount(item), 0);
-  const selfDestructTotal = summaries.reduce((sum, item) => sum + item.selfDestructOccurrences, 0);
-  const selfDestructRate = total ? selfDestructTotal / total : 0;
   heading.innerHTML = `
     <h3>選択したベイの対戦成績</h3>
-    <p>${total}件の対戦・${summaries.length}種類の相手構成・自滅 ${selfDestructTotal}回（${percentage(selfDestructRate)}）</p>
+    <p>${total}件の対戦・${summaries.length}種類の相手構成</p>
   `;
   container.innerHTML = summaries.map(summary => {
     const count = battleCount(summary);
@@ -583,8 +618,6 @@ function renderAnalysis() {
     const winRate = decided ? summary.wins / decided : 0;
     const reverseRate = count ? summary.reverseOccurrences / count : 0;
     const opponentReverseRate = count ? summary.opponentReverseOccurrences / count : 0;
-    const selfDestructRate = count ? summary.selfDestructOccurrences / count : 0;
-    const opponentSelfDestructRate = count ? summary.opponentSelfDestructOccurrences / count : 0;
     return `
       <article class="card matchup-card">
         <div class="matchup-opponent">
@@ -604,8 +637,6 @@ function renderAnalysis() {
         <div class="reverse-stats">
           <span>検索したベイのリバース <strong>${summary.reverseOccurrences}回 / ${count}戦（${percentage(reverseRate)}）</strong></span>
           <span>対戦したベイのリバース <strong>${summary.opponentReverseOccurrences}回 / ${count}戦（${percentage(opponentReverseRate)}）</strong></span>
-          <span>検索したベイの自滅 <strong class="self-destruct-value">${summary.selfDestructOccurrences}回 / ${count}戦（${percentage(selfDestructRate)}）</strong></span>
-          <span>対戦したベイの自滅 <strong class="self-destruct-value">${summary.opponentSelfDestructOccurrences}回 / ${count}戦（${percentage(opponentSelfDestructRate)}）</strong></span>
         </div>
       </article>
     `;
