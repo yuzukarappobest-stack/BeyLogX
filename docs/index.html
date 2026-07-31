@@ -157,10 +157,45 @@
         </div>
         <div id="analysis-config" class="config-fields analysis-fields"></div>
         <p class="hint">ラチェットは検索条件・対戦相手の集計キーに含めません。</p>
+        <button id="open-advantage" class="primary-button analysis-action" type="button">有利不利判定を見る</button>
       </section>
       <section id="analysis-self-destruct" class="self-destruct-summary" hidden></section>
       <div id="analysis-heading"></div>
       <div id="analysis-results" class="analysis-results"></div>
+    </section>
+
+    <section id="advantage-view" class="view" aria-labelledby="advantage-title">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">MATCHUP JUDGEMENT</p>
+          <h2 id="advantage-title">有利不利判定</h2>
+        </div>
+        <button id="advantage-back" class="secondary-button" type="button">結果検索へ戻る</button>
+      </div>
+
+      <section class="card judgement-rules">
+        <h3>判定基準</h3>
+        <p>同じ相手構成と10戦以上対戦したデータを判定します。</p>
+        <div class="rule-chips">
+          <span class="favorable">有利：勝率50%超・期待値0超</span>
+          <span class="unfavorable">不利：勝率50%未満・期待値0未満</span>
+          <span class="even">互角：勝率50%・期待値0</span>
+          <span class="mixed">傾向混在：それ以外</span>
+        </div>
+        <small>ポイント期待値 ＝（獲得ポイント − 失点ポイント）÷ 対戦数</small>
+      </section>
+
+      <section class="advantage-controls">
+        <div id="advantage-selection"></div>
+        <label class="field advantage-sort">
+          <span>並び順</span>
+          <select id="advantage-sort">
+            <option value="winRate">勝率が高い順</option>
+            <option value="expectedPoints">ポイント期待値が高い順</option>
+          </select>
+        </label>
+      </section>
+      <div id="advantage-results" class="advantage-results"></div>
     </section>
 
     <section id="data-view" class="view" aria-labelledby="data-title">

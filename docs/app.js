@@ -546,6 +546,11 @@ function finishDescription(finishes) {
   return parts.length ? parts.join("・") : "なし";
 }
 
+function selectedBeyName(bey) {
+  const blade = bladeDescription(bey, true);
+  return bey.bit ? `${blade}・${bey.bit}` : blade;
+}
+
 function selfDestructSummary(selected) {
   let appearanceCount = 0;
   let occurrenceCount = 0;
@@ -590,9 +595,81 @@ function renderSelfDestructSummary() {
   `;
 }
 
+function matchupJudgement(winRate, expectedPoints) {
+  if (winRate > 0.5 && expectedPoints > 0) return { label: "有利", className: "favorable" };
+  if (winRate < 0.5 && expectedPoints < 0) return { label: "不利", className: "unfavorable" };
+  if (winRate === 0.5 && expectedPoints === 0) return { label: "互角", className: "even" };
+  return { label: "傾向混在", className: "mixed" };
+}
+
+function renderAdvantage() {
+  const selection = $("#advantage-selection");
+  const container = $("#advantage-results");
+  if (!hasBladeSelection(states.analysis) || !states.analysis.bit) {
+    selection.innerHTML = "";
+    container.innerHTML = `<div class="empty-state"><strong>ブレードとビットを選択してください</strong>結果検索へ戻り、判定したいカスタムを選んでください。</div>`;
+    return;
+  }
+
+  selection.innerHTML = `
+    <span>判定するカスタム</span>
+    <strong>${escapeHTML(selectedBeyName(states.analysis))}</strong>
+  `;
+
+  const eligible = analyze(states.analysis)
+    .map(summary => {
+      const count = battleCount(summary);
+      const decided = summary.wins + summary.losses;
+      const winRate = decided ? summary.wins / decided : 0;
+      const expectedPoints = (summary.winPoints - summary.lossPoints) / count;
+      return { ...summary, count, winRate, expectedPoints, judgement: matchupJudgement(winRate, expectedPoints) };
+    })
+    .filter(summary => summary.count >= 10);
+
+  const sortKey = $("#advantage-sort").value;
+  eligible.sort((a, b) => {
+    const primary = sortKey === "expectedPoints"
+      ? b.expectedPoints - a.expectedPoints
+      : b.winRate - a.winRate;
+    const secondary = sortKey === "expectedPoints"
+      ? b.winRate - a.winRate
+      : b.expectedPoints - a.expectedPoints;
+    return primary || secondary || collator.compare(
+      `${a.opponentBlade} ${a.opponentBit}`,
+      `${b.opponentBlade} ${b.opponentBit}`
+    );
+  });
+
+  if (eligible.length === 0) {
+    container.innerHTML = `<div class="empty-state"><strong>10戦以上の相手構成がありません</strong>同じブレード＋ビットの相手と10戦以上対戦すると判定されます。</div>`;
+    return;
+  }
+
+  container.innerHTML = eligible.map((summary, index) => `
+    <article class="card advantage-row">
+      <span class="ranking-number">${index + 1}</span>
+      <div class="advantage-opponent">
+        <span>対戦相手</span>
+        <strong>${escapeHTML(summary.opponentBlade)}</strong>
+        <small>${escapeHTML(summary.opponentBit || "ビット未選択")}・${summary.wins}勝 ${summary.losses}敗${summary.draws ? ` ${summary.draws}分` : ""}（${summary.count}戦）</small>
+      </div>
+      <span class="judgement-badge ${summary.judgement.className}">${summary.judgement.label}</span>
+      <div class="advantage-value win-rate">
+        <strong>${percentage(summary.winRate)}</strong>
+        <span>勝率</span>
+      </div>
+      <div class="advantage-value expected">
+        <strong>${summary.expectedPoints > 0 ? "+" : ""}${summary.expectedPoints.toFixed(2)}</strong>
+        <span>ポイント期待値 / 戦</span>
+      </div>
+    </article>
+  `).join("");
+}
+
 function renderAnalysis() {
   const heading = $("#analysis-heading");
   const container = $("#analysis-results");
+  $("#open-advantage").disabled = !hasBladeSelection(states.analysis) || !states.analysis.bit;
   renderSelfDestructSummary();
   if (!hasBladeSelection(states.analysis)) {
     heading.innerHTML = "";
@@ -652,9 +729,11 @@ function renderAllDataViews() {
 
 function showView(name) {
   $$(".view").forEach(view => view.classList.toggle("is-active", view.id === `${name}-view`));
-  $$(".bottom-nav button").forEach(button => button.classList.toggle("is-active", button.dataset.view === name));
+  const navigationView = name === "advantage" ? "analysis" : name;
+  $$(".bottom-nav button").forEach(button => button.classList.toggle("is-active", button.dataset.view === navigationView));
   if (name === "history") renderHistory();
   if (name === "analysis") renderAnalysis();
+  if (name === "advantage") renderAdvantage();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -813,6 +892,9 @@ async function configurePersistentStorage() {
 function bindEvents() {
   $("#battle-form").addEventListener("submit", saveBattle);
   $("#swap-sides").addEventListener("click", swapBattleSides);
+  $("#open-advantage").addEventListener("click", () => showView("advantage"));
+  $("#advantage-back").addEventListener("click", () => showView("analysis"));
+  $("#advantage-sort").addEventListener("change", renderAdvantage);
   $$(".bottom-nav button").forEach(button => button.addEventListener("click", () => showView(button.dataset.view)));
 
   $("#data-menu-button").addEventListener("click", event => {
