@@ -628,13 +628,16 @@ function renderAdvantage() {
 
   const sortKey = $("#advantage-sort").value;
   eligible.sort((a, b) => {
-    const primary = sortKey === "expectedPoints"
-      ? b.expectedPoints - a.expectedPoints
-      : b.winRate - a.winRate;
-    const secondary = sortKey === "expectedPoints"
-      ? b.winRate - a.winRate
-      : b.expectedPoints - a.expectedPoints;
-    return primary || secondary || collator.compare(
+    const pointsFirst = sortKey.startsWith("expectedPoints");
+    const ascending = sortKey.endsWith("Low");
+    const primary = pointsFirst
+      ? a.expectedPoints - b.expectedPoints
+      : a.winRate - b.winRate;
+    const secondary = pointsFirst
+      ? a.winRate - b.winRate
+      : a.expectedPoints - b.expectedPoints;
+    const direction = ascending ? 1 : -1;
+    return direction * (primary || secondary) || collator.compare(
       `${a.opponentBlade} ${a.opponentBit}`,
       `${b.opponentBlade} ${b.opponentBit}`
     );
