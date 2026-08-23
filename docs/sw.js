@@ -1,4 +1,4 @@
-const CACHE_NAME = "beylogx-v7";
+const CACHE_NAME = "beylogx-v8";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -9,7 +9,11 @@ const APP_SHELL = [
 ];
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(
+      APP_SHELL.map(url => new Request(url, { cache: "reload" }))
+    ))
+  );
   self.skipWaiting();
 });
 
@@ -21,13 +25,39 @@ self.addEventListener("activate", event => {
   );
 });
 
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request, { cache: "no-store" });
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return await caches.match(request)
+      || (request.mode === "navigate" ? await caches.match("./index.html") : undefined)
+      || Response.error();
+  }
+}
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok) {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(request, response.clone());
+  }
+  return response;
+}
+
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
-  event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
-      const copy = response.clone();
-      caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-      return response;
-    }))
-  );
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  const networkFirstDestinations = new Set(["document", "script", "style", "manifest"]);
+  const shouldUseNetworkFirst = event.request.mode === "navigate"
+    || networkFirstDestinations.has(event.request.destination);
+  event.respondWith(shouldUseNetworkFirst ? networkFirst(event.request) : cacheFirst(event.request));
 });
