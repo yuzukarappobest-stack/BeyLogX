@@ -229,6 +229,20 @@ main {
 .swap-button span { color: var(--accent); font-size: 1.15rem; line-height: 1; }
 .swap-button:active { transform: translateY(1px); }
 
+.favorite-card { margin-bottom: 18px; }
+.favorite-card .card-title p { margin: 3px 0 0; color: var(--muted); font-size: .68rem; }
+.favorite-load-row, .favorite-save-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+.favorite-save-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.favorite-buttons { display: flex; flex-wrap: wrap; gap: 7px; }
+.favorite-buttons button { min-height: 44px; }
+.favorite-delete-button { padding: 9px 12px; color: var(--red); background: white; border: 1px solid #efc6cb; border-radius: 12px; font-weight: 800; }
+.favorite-buttons button:disabled { cursor: not-allowed; opacity: .45; }
+
 .config-fields, .form-grid { display: grid; gap: 12px; }
 
 .field { display: grid; gap: 6px; min-width: 0; }
@@ -545,6 +559,8 @@ dialog p { color: var(--muted); font-size: .82rem; }
   .result-grid, .analysis-fields { grid-template-columns: 1fr; }
   .fieldset-wide, .analysis-fields .field:first-child { grid-column: auto; }
   .metrics { grid-template-columns: 1fr 1fr; }
+  .favorite-load-row, .favorite-save-row { grid-template-columns: 1fr; align-items: stretch; }
+  .favorite-buttons button { flex: 1; }
   .advantage-row { grid-template-columns: 28px 1fr auto; }
   .advantage-value { text-align: left; }
   .advantage-value.win-rate { grid-column: 2; }
