@@ -40,6 +40,37 @@
       </div>
 
       <form id="battle-form">
+        <section class="card favorite-card">
+          <div class="card-title">
+            <span class="title-icon" aria-hidden="true">★</span>
+            <div>
+              <h3>よく使うベイ</h3>
+              <p>現在の構成を登録し、自分・相手へ呼び出せます。</p>
+            </div>
+          </div>
+          <div class="favorite-load-row">
+            <label class="field">
+              <span>登録済みベイ</span>
+              <select id="favorite-select"><option value="">登録なし</option></select>
+            </label>
+            <div class="favorite-buttons">
+              <button id="favorite-apply-my" class="secondary-button" type="button">自分へ呼出</button>
+              <button id="favorite-apply-opponent" class="secondary-button" type="button">相手へ呼出</button>
+              <button id="favorite-delete" class="favorite-delete-button" type="button">削除</button>
+            </div>
+          </div>
+          <div class="favorite-save-row">
+            <label class="field">
+              <span>登録名（同名は上書き）</span>
+              <input id="favorite-name" type="text" maxlength="40" placeholder="例：大会用ドランバスター">
+            </label>
+            <div class="favorite-buttons">
+              <button id="favorite-save-my" class="secondary-button" type="button">現在の自分を登録</button>
+              <button id="favorite-save-opponent" class="secondary-button" type="button">現在の相手を登録</button>
+            </div>
+          </div>
+        </section>
+
         <div class="versus-grid">
           <section class="card config-card">
             <div class="card-title">
@@ -152,11 +183,11 @@
           <span class="title-icon" aria-hidden="true">⌕</span>
           <div>
             <h3>ベイの対戦成績を検索</h3>
-            <p>自分・相手を区別せず集計。ブレード＋ビット選択で自滅率を表示。</p>
+            <p>自分・相手を区別せず、ブレード・ラチェット・ビットで検索。</p>
           </div>
         </div>
         <div id="analysis-config" class="config-fields analysis-fields"></div>
-        <p class="hint">ラチェットは検索条件・対戦相手の集計キーに含めません。</p>
+        <p class="hint">ラチェットとビットは任意。未選択なら、そのパーツを問わず集計します。</p>
         <button id="open-advantage" class="primary-button analysis-action" type="button">有利不利判定を見る</button>
       </section>
       <section id="analysis-self-destruct" class="self-destruct-summary" hidden></section>

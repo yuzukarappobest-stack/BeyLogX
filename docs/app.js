@@ -124,6 +124,7 @@ const states = {
 };
 
 let records = [];
+let favorites = [];
 let db;
 let deleteCandidateID = null;
 let toastTimer;
@@ -134,12 +135,15 @@ const $$ = selector => [...document.querySelectorAll(selector)];
 class BattleDatabase {
   static open() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open("BeyLogX", 1);
+      const request = indexedDB.open("BeyLogX", 2);
       request.onupgradeneeded = () => {
         const database = request.result;
         if (!database.objectStoreNames.contains("battles")) {
           const store = database.createObjectStore("battles", { keyPath: "id" });
           store.createIndex("playedAt", "playedAt");
+        }
+        if (!database.objectStoreNames.contains("favoriteBeys")) {
+          database.createObjectStore("favoriteBeys", { keyPath: "id" });
         }
       };
       request.onsuccess = () => resolve(request.result);
@@ -147,10 +151,10 @@ class BattleDatabase {
     });
   }
 
-  static transact(mode, operation) {
+  static transact(storeName, mode, operation) {
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction("battles", mode);
-      const store = transaction.objectStore("battles");
+      const transaction = db.transaction(storeName, mode);
+      const store = transaction.objectStore(storeName);
       const request = operation(store);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -158,9 +162,12 @@ class BattleDatabase {
     });
   }
 
-  static all() { return this.transact("readonly", store => store.getAll()); }
-  static put(record) { return this.transact("readwrite", store => store.put(record)); }
-  static remove(id) { return this.transact("readwrite", store => store.delete(id)); }
+  static all() { return this.transact("battles", "readonly", store => store.getAll()); }
+  static put(record) { return this.transact("battles", "readwrite", store => store.put(record)); }
+  static remove(id) { return this.transact("battles", "readwrite", store => store.delete(id)); }
+  static allFavorites() { return this.transact("favoriteBeys", "readonly", store => store.getAll()); }
+  static putFavorite(favorite) { return this.transact("favoriteBeys", "readwrite", store => store.put(favorite)); }
+  static removeFavorite(id) { return this.transact("favoriteBeys", "readwrite", store => store.delete(id)); }
 }
 
 function makeSelect(label, key, options, state, blankLabel = "未選択") {
@@ -236,10 +243,8 @@ function renderConfiguration(containerID, state, { analysis = false } = {}) {
     );
   }
 
-  if (!analysis) {
-    container.append(makeSelect("ラチェット", "ratchet", CATALOG.ratchets, state));
-  }
   container.append(
+    makeSelect("ラチェット", "ratchet", CATALOG.ratchets, state, analysis ? "指定しない" : "未選択"),
     makeSelect("ビット", "bit", CATALOG.bits, state, analysis ? "指定しない" : "未選択")
   );
 }
@@ -253,6 +258,79 @@ function clearHiddenComponents(state) {
     Object.assign(state, { blade: "", overBlade: "", metalBlade: "" });
   } else {
     Object.assign(state, { blade: "", mainBlade: "" });
+  }
+}
+
+function normalizeFavorite(value) {
+  return {
+    id: String(value.id),
+    name: String(value.name || "名称未設定"),
+    bey: { ...emptyBey(), ...(value.bey || {}) },
+    updatedAt: String(value.updatedAt || "")
+  };
+}
+
+function renderFavoriteControls(selectedID = $("#favorite-select")?.value || "") {
+  const select = $("#favorite-select");
+  if (!select) return;
+  const sortedFavorites = [...favorites].sort((a, b) => collator.compare(a.name, b.name));
+  select.replaceChildren(new Option(sortedFavorites.length ? "選択してください" : "登録なし", ""));
+  for (const favorite of sortedFavorites) {
+    select.append(new Option(`${favorite.name}｜${displayName(favorite.bey)}`, favorite.id));
+  }
+  select.value = favorites.some(favorite => favorite.id === selectedID) ? selectedID : "";
+  const disabled = !select.value;
+  $("#favorite-apply-my").disabled = disabled;
+  $("#favorite-apply-opponent").disabled = disabled;
+  $("#favorite-delete").disabled = disabled;
+}
+
+async function saveFavorite(source) {
+  const state = states[source];
+  const input = $("#favorite-name");
+  const name = input.value.trim() || displayName(state);
+  const existing = favorites.find(favorite => favorite.name === name);
+  const favorite = {
+    id: existing?.id || crypto.randomUUID(),
+    name,
+    bey: { ...emptyBey(), ...state },
+    updatedAt: new Date().toISOString()
+  };
+
+  try {
+    await BattleDatabase.putFavorite(favorite);
+    favorites = existing
+      ? favorites.map(item => item.id === favorite.id ? favorite : item)
+      : [...favorites, favorite];
+    input.value = name;
+    renderFavoriteControls(favorite.id);
+    showToast(existing ? "よく使うベイを更新しました" : "よく使うベイに登録しました");
+  } catch (error) {
+    console.error(error);
+    showToast("よく使うベイを保存できませんでした");
+  }
+}
+
+function applyFavorite(target) {
+  const favorite = favorites.find(item => item.id === $("#favorite-select").value);
+  if (!favorite) return;
+  Object.assign(states[target], emptyBey(), favorite.bey);
+  renderConfiguration(target === "my" ? "my-config" : "opponent-config", states[target]);
+  showToast(`${favorite.name}を${target === "my" ? "自分" : "相手"}へ呼び出しました`);
+}
+
+async function deleteFavorite() {
+  const id = $("#favorite-select").value;
+  const favorite = favorites.find(item => item.id === id);
+  if (!favorite) return;
+  try {
+    await BattleDatabase.removeFavorite(id);
+    favorites = favorites.filter(item => item.id !== id);
+    renderFavoriteControls();
+    showToast(`${favorite.name}を削除しました`);
+  } catch (error) {
+    console.error(error);
+    showToast("よく使うベイを削除できませんでした");
   }
 }
 
@@ -444,6 +522,7 @@ function sameBladeForAnalysis(recorded, selected) {
 
 function matchesSelected(recorded, selected) {
   return sameBladeForAnalysis(recorded, selected)
+    && (!selected.ratchet || recorded.ratchet === selected.ratchet)
     && (!selected.bit || recorded.bit === selected.bit);
 }
 
@@ -456,6 +535,7 @@ function opponentKey(bey) {
     overBlade: bey.overBlade || "",
     metalBlade: bey.metalBlade || "",
     assistBlade: bey.assistBlade || "",
+    ratchet: bey.ratchet || "",
     bit: bey.bit || ""
   };
   return JSON.stringify(normalized);
@@ -464,6 +544,7 @@ function opponentKey(bey) {
 function emptyAggregate(opposingBey) {
   return {
     opponentBlade: bladeDescription(opposingBey, true),
+    opponentRatchet: opposingBey.ratchet || "",
     opponentBit: opposingBey.bit || "",
     wins: 0,
     losses: 0,
@@ -528,8 +609,8 @@ function analyze(selected) {
   return [...map.values()].sort((a, b) => {
     const countDifference = battleCount(b) - battleCount(a);
     return countDifference || collator.compare(
-      `${a.opponentBlade} ${a.opponentBit}`,
-      `${b.opponentBlade} ${b.opponentBit}`
+      `${a.opponentBlade} ${a.opponentRatchet} ${a.opponentBit}`,
+      `${b.opponentBlade} ${b.opponentRatchet} ${b.opponentBit}`
     );
   });
 }
@@ -548,7 +629,8 @@ function finishDescription(finishes) {
 
 function selectedBeyName(bey) {
   const blade = bladeDescription(bey, true);
-  return bey.bit ? `${blade}・${bey.bit}` : blade;
+  const lower = [bey.ratchet, bey.bit].filter(Boolean).join("・");
+  return lower ? `${blade}・${lower}` : blade;
 }
 
 function selfDestructSummary(selected) {
@@ -579,13 +661,13 @@ function renderSelfDestructSummary() {
 
   const summary = selfDestructSummary(states.analysis);
   const rate = summary.appearanceCount ? percentage(summary.occurrenceCount / summary.appearanceCount) : "—";
-  const selectedName = `${bladeDescription(states.analysis, true)}・${states.analysis.bit}`;
+  const selectedName = selectedBeyName(states.analysis);
   container.hidden = false;
   container.innerHTML = `
     <div>
-      <span class="self-destruct-label">ブレード＋ビットの自滅傾向</span>
+      <span class="self-destruct-label">選択カスタムの自滅傾向</span>
       <strong>${escapeHTML(selectedName)}</strong>
-      <small>対戦相手・ラチェットを問わず集計</small>
+      <small>未指定のパーツはすべてまとめて集計</small>
     </div>
     <div class="self-destruct-metric">
       <strong>${rate}</strong>
@@ -638,8 +720,8 @@ function renderAdvantage() {
       : a.expectedPoints - b.expectedPoints;
     const direction = ascending ? 1 : -1;
     return direction * (primary || secondary) || collator.compare(
-      `${a.opponentBlade} ${a.opponentBit}`,
-      `${b.opponentBlade} ${b.opponentBit}`
+      `${a.opponentBlade} ${a.opponentRatchet} ${a.opponentBit}`,
+      `${b.opponentBlade} ${b.opponentRatchet} ${b.opponentBit}`
     );
   });
 
@@ -654,7 +736,7 @@ function renderAdvantage() {
       <div class="advantage-opponent">
         <span>対戦相手</span>
         <strong>${escapeHTML(summary.opponentBlade)}</strong>
-        <small>${escapeHTML(summary.opponentBit || "ビット未選択")}・${summary.wins}勝 ${summary.losses}敗${summary.draws ? ` ${summary.draws}分` : ""}（${summary.count}戦）</small>
+        <small>${escapeHTML(summary.opponentRatchet || "ラチェット未選択")}・${escapeHTML(summary.opponentBit || "ビット未選択")}・${summary.wins}勝 ${summary.losses}敗${summary.draws ? ` ${summary.draws}分` : ""}（${summary.count}戦）</small>
       </div>
       <span class="judgement-badge ${summary.judgement.className}">${summary.judgement.label}</span>
       <div class="advantage-value win-rate">
@@ -702,6 +784,7 @@ function renderAnalysis() {
       <article class="card matchup-card">
         <div class="matchup-opponent">
           <h3>${escapeHTML(summary.opponentBlade)}</h3>
+          <span class="bit-chip">${escapeHTML(summary.opponentRatchet || "ラチェット未選択")}</span>
           <span class="bit-chip">${escapeHTML(summary.opponentBit || "ビット未選択")}</span>
         </div>
         <div class="metrics">
@@ -895,6 +978,16 @@ async function configurePersistentStorage() {
 function bindEvents() {
   $("#battle-form").addEventListener("submit", saveBattle);
   $("#swap-sides").addEventListener("click", swapBattleSides);
+  $("#favorite-select").addEventListener("change", event => {
+    renderFavoriteControls(event.target.value);
+    const favorite = favorites.find(item => item.id === event.target.value);
+    if (favorite) $("#favorite-name").value = favorite.name;
+  });
+  $("#favorite-save-my").addEventListener("click", () => saveFavorite("my"));
+  $("#favorite-save-opponent").addEventListener("click", () => saveFavorite("opponent"));
+  $("#favorite-apply-my").addEventListener("click", () => applyFavorite("my"));
+  $("#favorite-apply-opponent").addEventListener("click", () => applyFavorite("opponent"));
+  $("#favorite-delete").addEventListener("click", deleteFavorite);
   $("#open-advantage").addEventListener("click", () => showView("advantage"));
   $("#advantage-back").addEventListener("click", () => showView("analysis"));
   $("#advantage-sort").addEventListener("change", renderAdvantage);
@@ -944,12 +1037,19 @@ async function start() {
   renderConfiguration("my-config", states.my);
   renderConfiguration("opponent-config", states.opponent);
   renderConfiguration("analysis-config", states.analysis, { analysis: true });
+  renderFavoriteControls();
   setInitialDate();
   bindEvents();
 
   try {
     db = await BattleDatabase.open();
-    records = (await BattleDatabase.all()).map(normalizedRecord);
+    const [storedRecords, storedFavorites] = await Promise.all([
+      BattleDatabase.all(),
+      BattleDatabase.allFavorites()
+    ]);
+    records = storedRecords.map(normalizedRecord);
+    favorites = storedFavorites.map(normalizeFavorite);
+    renderFavoriteControls();
     renderAllDataViews();
     await configurePersistentStorage();
   } catch (error) {
