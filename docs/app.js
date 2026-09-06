@@ -17,7 +17,7 @@ const CATALOG = {
     "クロコクランチ", "シェルタードレイク", "トリケラプレス", "サムライスチール",
     "トリケラスパイキー", "ティラノロア", "サムライカリバー", "ゴートタックル",
     "シャークギル", "コバルトドラグーン", "ドランストライク", "ヘブンズリング",
-    "ドランバスター", "ヘルズハンマー", "ヘルズネザー", "ウィザードロッド", "シノビシャドウ",
+    "ドランバスター", "ヘルズハンマー", "ヘルズネザー（ノーマル）", "ヘルズネザー（ロー）", "ウィザードロッド", "シノビシャドウ",
     "エアロペガサス", "レオンクレスト", "フェニックスラダー", "シルバーウルフ",
     "サムライセイバー", "ナイトメイル", "インパクトドレイク", "ゴーストサークル",
     "ゴーレムロック", "スコーピオスピア", "シャークスケイル", "ワイバーンホバー",
@@ -116,6 +116,15 @@ const emptyBey = () => ({
   ratchet: "",
   bit: ""
 });
+
+function normalizeBey(bey = {}) {
+  const normalized = { ...emptyBey(), ...bey };
+  // 分割前に保存されたデータは従来形状の「ノーマル」として引き継ぐ。
+  if (normalized.blade === "ヘルズネザー") {
+    normalized.blade = "ヘルズネザー（ノーマル）";
+  }
+  return normalized;
+}
 
 const states = {
   my: emptyBey(),
@@ -265,7 +274,7 @@ function normalizeFavorite(value) {
   return {
     id: String(value.id),
     name: String(value.name || "名称未設定"),
-    bey: { ...emptyBey(), ...(value.bey || {}) },
+    bey: normalizeBey(value.bey),
     updatedAt: String(value.updatedAt || "")
   };
 }
@@ -836,7 +845,6 @@ function normalizedRecord(value) {
   if (!value.id || !value.playedAt || !value.myBey || !value.opponentBey || !value.winner || !value.finish) {
     throw new Error("必要な項目がない対戦記録があります");
   }
-  const normalizeBey = bey => ({ ...emptyBey(), ...bey });
   return {
     id: String(value.id),
     playedAt: String(value.playedAt),
