@@ -285,7 +285,7 @@ function renderFavoriteControls(selectedID = $("#favorite-select")?.value || "")
   const sortedFavorites = [...favorites].sort((a, b) => collator.compare(a.name, b.name));
   select.replaceChildren(new Option(sortedFavorites.length ? "選択してください" : "登録なし", ""));
   for (const favorite of sortedFavorites) {
-    select.append(new Option(`${favorite.name}｜${displayName(favorite.bey)}`, favorite.id));
+    select.append(new Option(favorite.name, favorite.id));
   }
   select.value = favorites.some(favorite => favorite.id === selectedID) ? selectedID : "";
   const disabled = !select.value;
