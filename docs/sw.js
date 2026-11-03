@@ -1,4 +1,4 @@
-const CACHE_NAME = "beylogx-v12";
+const CACHE_NAME = "beylogx-v13";
 const APP_SHELL = [
   "./",
   "./index.html",
