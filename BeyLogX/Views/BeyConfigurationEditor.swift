@@ -56,6 +56,15 @@ struct BeyConfigurationEditor: View {
                         selection: $configuration.blade,
                         options: PartsCatalog.standardBlades
                     )
+                    if configuration.blade == "ラスタードラグーン" {
+                        Button("BX-52 純正構成（6-60 / LC）を入力") {
+                            configuration.ratchet = "6-60"
+                            configuration.bit = "LC（ローサイクロン）"
+                        }
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
                 case .custom:
                     PartPickerRow(
                         title: "ロックチップ",
