@@ -68,3 +68,14 @@ Web版はブラウザのIndexedDBへ自動保存しますが、ブラウザの�
 ## GitHub Pages
 
 GitHubリポジトリの Settings → Pages → Build and deployment で、Sourceを「Deploy from a branch」、Branchを `main` / `/docs` に設定すると公開されます。
+
+## BX-52 ラスタードラグーン6-60LC
+
+- **ブレード**：ラスタードラグーン（BX / UX、左回転BXエクスパンドブレード）
+- **ラチェット**：6-60
+- **ビット**：LC（ローサイクロン）
+- 公式製品情報：https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx52.html
+
+iPhone版とWeb版のパーツ候補には上記3種類が登録されています。対戦入力で「BX / UX」→「ラスタードラグーン」を選ぶと、「BX-52 純正構成（6-60 / LC）を入力」ボタンが表示され、ラチェットとビットをまとめてセットできます。自分・相手のどちらにも使用でき、押さなければ既存のパーツ選択は変更されません。
+
+Web版の更新用キャッシュバージョンは `beylogx-v13`、読み込みスクリプトは `app.js?v=13` です。古い画面が残る場合は `docs/update.html`（公開サイトでは `update.html`）からキャッシュを更新できます。更新操作ではブラウザーの対戦データ（IndexedDB）を消去しません。iPhoneネイティブ版は、GitHubのソース変更を反映した新しいアプリビルドのインストールが必要です。
