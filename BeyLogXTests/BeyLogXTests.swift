@@ -101,6 +101,31 @@ final class BeyLogXTests: XCTestCase {
         XCTAssertFalse(decoded.opponentReverseOccurred)
     }
 
+    func testBX52LusterDragoonIsAvailableWithoutDuplicateParts() {
+        // BX-52 Luster Dragoon 6-60LC: Takara Tomy official composition.
+        XCTAssertEqual(
+            PartsCatalog.standardBlades.filter { $0 == "ラスタードラグーン" }.count,
+            1
+        )
+        XCTAssertTrue(PartsCatalog.ratchets.contains("6-60"))
+        XCTAssertTrue(PartsCatalog.bits.contains("LC（ローサイクロン）"))
+
+        let stock = BeyConfiguration(
+            system: .standard,
+            blade: "ラスタードラグーン",
+            ratchet: "6-60",
+            bit: "LC（ローサイクロン）"
+        )
+        XCTAssertEqual(stock.bladeDescription, "ラスタードラグーン")
+        XCTAssertEqual(
+            stock.displayName,
+            "ラスタードラグーン  6-60・LC（ローサイクロン）"
+        )
+        XCTAssertTrue(stock.hasSameBlade(
+            as: BeyConfiguration(blade: "ラスタードラグーン")
+        ))
+    }
+
     func testPartsAreSortedWithinAlphabetAndJapaneseSyllabary() throws {
         let sorted = PartsCatalog.sorted(["か", "B", "あ", "A"])
 
