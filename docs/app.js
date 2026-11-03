@@ -236,7 +236,30 @@ function renderConfiguration(containerID, state, { analysis = false } = {}) {
   container.append(note);
 
   if (state.system === SYSTEM.standard) {
-    container.append(makeSelect("ブレード", "blade", CATALOG.standardBlades, state));
+    const bladeField = makeSelect("ブレード", "blade", CATALOG.standardBlades, state);
+    container.append(bladeField);
+
+    // BX-52: show a stock-part shortcut only when Luster Dragoon is selected.
+    // This changes only the ratchet and bit; the user's other selections
+    // and saved battle records remain untouched.
+    if (!analysis) {
+      const stockButton = document.createElement("button");
+      stockButton.type = "button";
+      stockButton.className = "secondary-button";
+      stockButton.textContent = "BX-52 純正構成（6-60 / LC）を入力";
+      const updateStockButton = () => {
+        stockButton.hidden = state.blade !== "ラスタードラグーン";
+      };
+      bladeField.querySelector("select").addEventListener("change", updateStockButton);
+      stockButton.addEventListener("click", () => {
+        if (state.blade !== "ラスタードラグーン") return;
+        state.ratchet = "6-60";
+        state.bit = "LC（ローサイクロン）";
+        renderConfiguration(containerID, state, { analysis });
+      });
+      updateStockButton();
+      container.append(stockButton);
+    }
   } else if (state.system === SYSTEM.custom) {
     container.append(
       makeSelect("ロックチップ", "lockChip", analysis ? CATALOG.analysisLockChips : CATALOG.lockChips, state),
