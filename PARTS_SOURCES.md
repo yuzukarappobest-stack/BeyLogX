@@ -7,11 +7,10 @@
   - GNは登録済み。他の5点を追加。
   - 公式：https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html
   - 公式パーツ画像：https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX19.png
-- ラスタードラグーン6-60LC（BX）
+- ラスタードラグーン6-60LC（BX-52／2026年10月10日発売）
   - ブレード：ラスタードラグーン、ラチェット：6-60、ビット：LC（ローサイクロン）。
-  - 6-60は登録済み。他の2点を追加。BX / UXの単体ブレード欄で選択する。
-  - 公式製品ページは確認時点で見つからず、以下の紹介記事に基づく先行対応（正式仕様の確認は未完了）。
-  - https://www.toy-people.com/jp/?p=114330
-  - https://beybladehub.app/blog/corocoro-2026-10-beyblade-x-news
+  - タカラトミー公式製品ページで正式確認済み。左回転のBXエクスパンドブレードを使用したアタックタイプで、アプリ上の選択区分は「BX / UX」の単体ブレード。
+  - ブレードとLCは先行登録済みだったため、重複登録せず両アプリに純正構成の入力ショートカットを追加。
+  - 公式：https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx52.html
 
 Web版とiPhone版の両カタログに同じ名称で追加。既存の保存値・データ形式は変更しない。
